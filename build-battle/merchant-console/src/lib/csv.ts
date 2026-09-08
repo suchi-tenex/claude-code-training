@@ -25,6 +25,35 @@ export const EXPORT_COLUMNS = [
 
 export type ExportColumn = (typeof EXPORT_COLUMNS)[number]
 
+export const EXPORT_COLUMN_LABELS: Record<ExportColumn, string> = {
+  id: "Payment ID",
+  created_at: "Created",
+  merchant: "Merchant",
+  description: "Description",
+  status: "Status",
+  method: "Method",
+  card_brand: "Card brand",
+  last4: "Card last 4",
+  amount: "Amount",
+  currency: "Currency",
+}
+
+/**
+ * Column names arrive from the client. Anything not in EXPORT_COLUMNS is
+ * dropped rather than passed through. Order is always the canonical
+ * EXPORT_COLUMNS order, regardless of the order requested.
+ */
+export function parseColumns(param: string | null): ExportColumn[] {
+  if (!param) return []
+  const requested = new Set(
+    param
+      .split(",")
+      .map((column) => column.trim())
+      .filter(Boolean),
+  )
+  return EXPORT_COLUMNS.filter((column) => requested.has(column))
+}
+
 function escapeCell(value: string): string {
   if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`
   return value
@@ -66,6 +95,7 @@ export function toCsv(
   return [header, ...rows].join("\n")
 }
 
-export function exportFilename(date = new Date()): string {
-  return `payments-${date.toISOString().slice(0, 10)}.csv`
+export function exportFilename(date = new Date(), slug?: string): string {
+  const day = date.toISOString().slice(0, 10)
+  return slug ? `payments-${slug}-${day}.csv` : `payments-${day}.csv`
 }

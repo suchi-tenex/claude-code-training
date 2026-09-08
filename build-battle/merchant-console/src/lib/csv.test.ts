@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { Payment } from "@/data/types"
-import { EXPORT_COLUMNS, exportFilename, toCsv } from "./csv"
+import { EXPORT_COLUMNS, exportFilename, parseColumns, toCsv } from "./csv"
 
 /**
  * The export is the file ops hands to a merchant, so a broken cell is a
@@ -81,5 +81,40 @@ describe("exportFilename", () => {
     expect(exportFilename(new Date("2026-03-14T23:00:00.000Z"))).toBe(
       "payments-2026-03-14.csv",
     )
+  })
+
+  it("inserts a slug between the prefix and the date when scope calls for one", () => {
+    expect(
+      exportFilename(new Date("2026-08-13T23:00:00.000Z"), "disputed"),
+    ).toBe("payments-disputed-2026-08-13.csv")
+  })
+
+  it("omits the slug segment entirely when none is given", () => {
+    expect(exportFilename(new Date("2026-08-13T23:00:00.000Z"))).toBe(
+      "payments-2026-08-13.csv",
+    )
+  })
+})
+
+describe("parseColumns", () => {
+  it("returns the requested columns in canonical order, regardless of input order", () => {
+    expect(parseColumns("amount,id")).toEqual(["id", "amount"])
+  })
+
+  it("drops a column name that isn't in EXPORT_COLUMNS rather than passing it through", () => {
+    expect(parseColumns("id,not_a_real_column,amount")).toEqual([
+      "id",
+      "amount",
+    ])
+  })
+
+  it("dedupes a column requested more than once", () => {
+    expect(parseColumns("id,id,amount")).toEqual(["id", "amount"])
+  })
+
+  it("returns an empty list for missing or blank input", () => {
+    expect(parseColumns(null)).toEqual([])
+    expect(parseColumns("")).toEqual([])
+    expect(parseColumns("   ")).toEqual([])
   })
 })
